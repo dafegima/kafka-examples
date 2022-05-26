@@ -1,7 +1,7 @@
 # ¿How to Run this project?
 
 ## 1- Install Docker Desktop
-If you don't have Docker intalled on your computer go to [Docker](https://www.docker.com/products/docker-desktop/) and follow the instructions.
+If you don't have Docker installed on your computer go to [Docker](https://www.docker.com/products/docker-desktop/) and follow the instructions.
 
 ## 2- Start Kafka Server
 You need to run docker-compose command to start the Kafka Server, for this go to the infrastructure folder and run **docker-compose up -d** command
