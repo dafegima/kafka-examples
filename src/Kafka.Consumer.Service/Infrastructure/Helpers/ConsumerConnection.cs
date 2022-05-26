@@ -1,43 +1,42 @@
 ﻿using Confluent.Kafka;
-using Kafka.Consumer.Service.Infrastructure.Helpers.Abstractions;
 using Kafka.Consumer.Service.Infrastructure.Settings;
 using Microsoft.Extensions.Options;
 
 namespace Kafka.Consumer.Service.Infrastructure.Helpers
 {
-    public class ConsumerConnection : AgnosticConnection<IConsumer<Ignore, string>, ConsumerConfig>, IConsumerConnection
+    public class ConsumerConnection : IConsumerConnection
     {
         private readonly ILogger<ConsumerConnection> _logger;
         private TopicSettings _topicSettings;
         public bool RowsReadedSuccessfully { get { return _rowsReadedSuccessfully; } }
         private bool _rowsReadedSuccessfully { get; set; }
+        private readonly ConsumerConfig _consumerConfig;
 
         public ConsumerConnection(IOptions<TopicSettings> settings,
             ILogger<ConsumerConnection> logger)
-            : base(connectionSettings: new ConsumerConfig
-            {
-                BootstrapServers = settings.Value.BrokerList,
-                GroupId = settings.Value.ConsumerGroup,
-                StatisticsIntervalMs = settings.Value.StatisticsIntervalMs,
-                SessionTimeoutMs = settings.Value.SessionTimeoutMs,
-                AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnableAutoCommit = settings.Value.AutoCommit,
-                EnablePartitionEof = true,
-                MaxPollIntervalMs = settings.Value.MaxPollIntervalMs,
-                AutoCommitIntervalMs = 5000,
-                EnableAutoOffsetStore = true,
-            })
         {
             _logger = logger;
             _topicSettings = settings.Value ?? throw new ArgumentNullException(nameof(settings));
+            _consumerConfig = new ConsumerConfig()
+            {
+                BootstrapServers = _topicSettings.BrokerList,
+                GroupId = _topicSettings.ConsumerGroup,
+                StatisticsIntervalMs = _topicSettings.StatisticsIntervalMs,
+                SessionTimeoutMs = _topicSettings.SessionTimeoutMs,
+                AutoOffsetReset = AutoOffsetReset.Earliest,
+                EnableAutoCommit = _topicSettings.AutoCommit,
+                EnablePartitionEof = true,
+                MaxPollIntervalMs = _topicSettings.MaxPollIntervalMs,
+                AutoCommitIntervalMs = 5000,
+                EnableAutoOffsetStore = true,
+            };
         }
-
 
         public IConsumer<Ignore, string> GetListenerConsumer(TopicSettings config)
         {
             _topicSettings = config;
 
-            var instance = NewInstance;
+            var instance = CreateConsumer();
             instance.Subscribe(config.TopicName);
 
             return instance;
@@ -46,9 +45,9 @@ namespace Kafka.Consumer.Service.Infrastructure.Helpers
         public void StartReadingStatus() { _rowsReadedSuccessfully = true; }
         public bool GetReadingStatus() { return _rowsReadedSuccessfully; }
 
-        protected override IConsumer<Ignore, string> Resolve(ConsumerConfig connectionSettings)
+        private IConsumer<Ignore, string> CreateConsumer()
         {
-            return new ConsumerBuilder<Ignore, string>(connectionSettings)
+            return new ConsumerBuilder<Ignore, string>(_consumerConfig)
                  .SetErrorHandler((_, error) =>
                  {
                      _rowsReadedSuccessfully = false;
